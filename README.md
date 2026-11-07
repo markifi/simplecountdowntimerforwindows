@@ -1,5 +1,5 @@
 # simplecountdowntimerforwindows
-copying hourglass (https://chris.dziemborowicz.com/apps/hourglass/) except not .NET. a simple countdown timer for windows. much worse than hourglass, but starts instantly.
+copying hourglass (https://chris.dziemborowicz.com/apps/hourglass/) except not .NET. a simple countdown timer for windows. much worse than hourglass is, but starts instantly.
 
 - can't be paused, can't be stopped, this is intentional. of course it can be closed by pressing alt+f4 or killing the process
 - config file can be opened by pressing e
