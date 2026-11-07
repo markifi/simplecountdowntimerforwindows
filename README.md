@@ -7,3 +7,6 @@ copying hourglass (https://chris.dziemborowicz.com/apps/hourglass/) except not .
 - g++ -O3 -std=c++17 simplecountdowntimerforwindows.cpp -o simplecountdowntimerforwindows.exe -luser32 -lgdi32 -lwinmm -lshell32 -mwindows -ucrt
 - https://winlibs.com/#download-release
 - C:\mingw64\bin
+<img width="1050" height="600" alt="image" src="https://github.com/user-attachments/assets/7b07889c-47ee-4e78-8bbe-728c355f97e2" />
+<img width="1050" height="600" alt="image" src="https://github.com/user-attachments/assets/5a808216-0c4f-4a84-9f47-70b9daef6d6f" />
+<img width="1050" height="600" alt="image" src="https://github.com/user-attachments/assets/5fa41662-5698-4a45-87c8-1812bc7d9e26" />
