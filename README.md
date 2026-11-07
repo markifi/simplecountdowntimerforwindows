@@ -4,6 +4,7 @@ copying hourglass (https://chris.dziemborowicz.com/apps/hourglass/) except not .
 - can't be paused, can't be stopped, this is intentional. of course it can be closed by pressing alt+f4 or killing the process
 - config file can be opened by pressing e
 - parses things like 5pm or 7am and counts down to them based on the difference from the current time, but doesn't do "friday 7pm" or similar
+- parses 1h as one hour, 50m as 50 minutes, etc. simple numbers will be interpreted as number of seconds
 - default font is atkinson hyperlegible next mono light (https://github.com/googlefonts/atkinson-hyperlegible-next-mono/raw/refs/heads/main/fonts/ttf/AtkinsonHyperlegibleMono-Light.ttf)
 - g++ -O3 -std=c++17 simplecountdowntimerforwindows.cpp -o simplecountdowntimerforwindows.exe -luser32 -lgdi32 -lwinmm -lshell32 -mwindows -ucrt
 - https://winlibs.com/#download-release
