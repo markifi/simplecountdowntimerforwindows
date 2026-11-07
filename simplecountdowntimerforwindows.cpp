@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <fstream>
 #include <algorithm>
+#include <ctime>
 
 // Configuration Structure
 struct AppConfig {
@@ -22,7 +23,7 @@ struct AppConfig {
     std::wstring fontFace = L"Atkinson Hyperlegible Mono Light";
     COLORREF bgColor = RGB(24, 24, 24);
     COLORREF normalColor = RGB(240, 240, 240);
-    COLORREF overtimeColor = RGB(255, 0, 0); // Explicitly FF0000
+    COLORREF overtimeColor = RGB(255, 0, 0); // #FF0000
     COLORREF promptColor = RGB(180, 180, 180);
 };
 
@@ -198,10 +199,77 @@ void LoadConfiguration() {
     }
 }
 
-// Parses duration inputs like "5m30s", "45s", "2h", or raw seconds
+// Parses duration inputs (supports relative like "5m", raw seconds, and absolute like "7am", "7:00am", "10:45pm")
 long long ParseDuration(const std::wstring& input) {
     if (input.empty()) return 0;
-    
+
+    // Clean input: lowercase, remove spaces and periods
+    std::wstring clean = input;
+    clean.erase(std::remove(clean.begin(), clean.end(), L' '), clean.end());
+    clean.erase(std::remove(clean.begin(), clean.end(), L'.'), clean.end());
+    std::transform(clean.begin(), clean.end(), clean.begin(), ::towlower);
+
+    bool isPM = (clean.find(L"pm") != std::wstring::npos);
+    bool isAM = (clean.find(L"am") != std::wstring::npos);
+    bool hasColon = (clean.find(L':') != std::wstring::npos);
+
+    if (isAM || isPM || hasColon) {
+        if (isPM) {
+            size_t pos = clean.find(L"pm");
+            clean.erase(pos, 2);
+        } else if (isAM) {
+            size_t pos = clean.find(L"am");
+            clean.erase(pos, 2);
+        }
+
+        int targetHour = 0;
+        int targetMin = 0;
+
+        size_t colonPos = clean.find(L':');
+        if (colonPos != std::wstring::npos) {
+            std::wstring hStr = clean.substr(0, colonPos);
+            std::wstring mStr = clean.substr(colonPos + 1);
+            try {
+                targetHour = std::stoi(hStr);
+                if (!mStr.empty()) targetMin = std::stoi(mStr);
+            } catch (...) { return 0; }
+        } else {
+            std::wstring digits = L"";
+            for (wchar_t c : clean) {
+                if (iswdigit(c)) digits += c;
+            }
+            if (digits.empty()) return 0;
+
+            if (digits.length() <= 2) {
+                targetHour = std::stoi(digits);
+                targetMin = 0;
+            } else if (digits.length() == 3) {
+                targetHour = std::stoi(digits.substr(0, 1));
+                targetMin = std::stoi(digits.substr(1, 2));
+            } else if (digits.length() >= 4) {
+                targetHour = std::stoi(digits.substr(0, 2));
+                targetMin = std::stoi(digits.substr(2, 2));
+            }
+        }
+
+        if (isPM && targetHour < 12) targetHour += 12;
+        if (isAM && targetHour == 12) targetHour = 0;
+
+        std::time_t now = std::time(nullptr);
+        std::tm* localTime = std::localtime(&now);
+        if (localTime) {
+            long long currentTotalSec = localTime->tm_hour * 3600 + localTime->tm_min * 60 + localTime->tm_sec;
+            long long targetTotalSec = targetHour * 3600 + targetMin * 60;
+
+            long long diffSec = targetTotalSec - currentTotalSec;
+            if (diffSec <= 0) {
+                diffSec += 24 * 3600; // Roll over to tomorrow if passed
+            }
+            return diffSec;
+        }
+    }
+
+    // Otherwise, parse relative duration (e.g., 5m, 30s, or raw seconds)
     bool pureNumber = true;
     for (wchar_t c : input) {
         if (!iswdigit(c)) {
