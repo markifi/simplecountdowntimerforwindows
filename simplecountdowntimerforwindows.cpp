@@ -25,11 +25,6 @@ struct AppConfig {
     COLORREF normalColor = RGB(240, 240, 240);
     COLORREF overtimeColor = RGB(255, 0, 0); // #FF0000
     COLORREF promptColor = RGB(180, 180, 180);
-    int windowWidth = 840;
-    int windowHeight = 480;
-    int windowX = CW_USEDEFAULT;
-    int windowY = CW_USEDEFAULT;
-    bool hasPosition = false;
 };
 
 AppConfig config;
@@ -51,7 +46,6 @@ void StartTimer(long long seconds);
 void TimerLoop();
 long long ParseDuration(const std::wstring& input);
 void LoadConfiguration();
-void SaveConfiguration();
 COLORREF ParseHexColor(const std::string& str, COLORREF defaultColor);
 std::wstring GetConfigFilePath();
 
@@ -84,14 +78,11 @@ int main() {
 
     RegisterClassW(&wc);
 
-    // Borderless popup window with thick frame for resizing capability
-    int xPos = config.hasPosition ? config.windowX : CW_USEDEFAULT;
-    int yPos = config.hasPosition ? config.windowY : CW_USEDEFAULT;
-
+    // Borderless popup window with double size (840 x 480)
     hMainWnd = CreateWindowExW(
         WS_EX_APPWINDOW, CLASS_NAME, L"simplecountdowntimerforwindows",
-        WS_POPUP | WS_SYSMENU | WS_THICKFRAME | WS_VISIBLE,
-        xPos, yPos, config.windowWidth, config.windowHeight,
+        WS_POPUP | WS_SYSMENU | WS_VISIBLE,
+        CW_USEDEFAULT, CW_USEDEFAULT, 840, 480,
         NULL, NULL, hInstance, NULL
     );
 
@@ -141,7 +132,7 @@ void LoadConfiguration() {
     std::wstring confPath = GetConfigFilePath();
     std::string filename(confPath.begin(), confPath.end());
     
-    // Ensure default config file exists with geometry settings included
+    // Ensure default config file exists in MPV style with hex color codes
     {
         std::ifstream checkFile(filename);
         if (!checkFile.is_open()) {
@@ -153,8 +144,6 @@ void LoadConfiguration() {
                 outfile << "normal-text-rgb = F0F0F0\n";
                 outfile << "overtime-text-rgb = FF0000\n";
                 outfile << "prompt-text-rgb = B4B4B4\n";
-                outfile << "window-width = 840\n";
-                outfile << "window-height = 480\n";
                 outfile.close();
             }
         }
@@ -206,62 +195,7 @@ void LoadConfiguration() {
             config.overtimeColor = ParseHexColor(val, config.overtimeColor);
         } else if (key == "prompttextrgb" || key == "promptcolor") {
             config.promptColor = ParseHexColor(val, config.promptColor);
-        } else if (key == "windowwidth" || key == "width") {
-            config.windowWidth = std::stoi(val);
-        } else if (key == "windowheight" || key == "height") {
-            config.windowHeight = std::stoi(val);
-        } else if (key == "windowx" || key == "x") {
-            config.windowX = std::stoi(val);
-            config.hasPosition = true;
-        } else if (key == "windowy" || key == "y") {
-            config.windowY = std::stoi(val);
-            config.hasPosition = true;
         }
-    }
-}
-
-void SaveConfiguration() {
-    if (!hMainWnd) return;
-    
-    // Do not save coordinates if window is minimized or maximized
-    WINDOWPLACEMENT wp = { sizeof(wp) };
-    if (GetWindowPlacement(hMainWnd, &wp) && wp.showCmd == SW_SHOWNORMAL) {
-        RECT rc;
-        if (GetWindowRect(hMainWnd, &rc)) {
-            config.windowX = rc.left;
-            config.windowY = rc.top;
-            config.windowWidth = rc.right - rc.left;
-            config.windowHeight = rc.bottom - rc.top;
-            config.hasPosition = true;
-        }
-    }
-
-    std::wstring confPath = GetConfigFilePath();
-    std::string filename(confPath.begin(), confPath.end());
-
-    std::ofstream file(filename, std::ios::trunc);
-    if (file.is_open()) {
-        file << "font-size = " << config.fontSize << "\n";
-        std::string ff(config.fontFace.begin(), config.fontFace.end());
-        file << "font-face = " << ff << "\n";
-        
-        auto rgbToStr = [](COLORREF c) {
-            char buf[16];
-            sprintf(buf, "%02X%02X%02X", GetRValue(c), GetGValue(c), GetBValue(c));
-            return std::string(buf);
-        };
-
-        file << "background-rgb = " << rgbToStr(config.bgColor) << "\n";
-        file << "normal-text-rgb = " << rgbToStr(config.normalColor) << "\n";
-        file << "overtime-text-rgb = " << rgbToStr(config.overtimeColor) << "\n";
-        file << "prompt-text-rgb = " << rgbToStr(config.promptColor) << "\n";
-        file << "window-width = " << config.windowWidth << "\n";
-        file << "window-height = " << config.windowHeight << "\n";
-        if (config.hasPosition) {
-            file << "window-x = " << config.windowX << "\n";
-            file << "window-y = " << config.windowY << "\n";
-        }
-        file.close();
     }
 }
 
@@ -415,9 +349,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         break;
     }
     case WM_NCHITTEST: {
-        // DefWindowProc handles window borders (WS_THICKFRAME) for resizing,
-        // but if the hit test is in the client area, we return HTCAPTION so 
-        // dragging anywhere on the window moves it around smoothly.
         LRESULT hit = DefWindowProcW(hwnd, uMsg, wParam, lParam);
         if (hit == HTCLIENT) return HTCAPTION;
         return hit;
@@ -538,7 +469,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
         break;
     }
     case WM_DESTROY:
-        SaveConfiguration();
         exitThread = true;
         PostQuitMessage(0);
         break;
